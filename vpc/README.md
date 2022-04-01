@@ -11,6 +11,10 @@ Refer to the following files for detailed information
 * params-dev.json - Override parameters for the VPC.
 * setup-vpc.sh - creates and s3 bucket stack, copies files to the s3 bucket and run the cloudformation based on parameters passed.
 
-Templates
+## Templates
 * bucket-vpc-template.yaml - All the cloudformation templates are banked here prior to execution.
 * vpc-template.yaml - Cloudformation to create a VPC.
+
+## Configs
+* Houses the parameters per environment. The environment name provided in the deploy-*.sh is used to pick up the corresponding file required in the configs folder. For example if ther environment name is dev, the params-dev.json is picked up as a parameter.
+

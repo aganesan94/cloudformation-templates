@@ -23,7 +23,7 @@ Parameters:
     Description:  Comma separated list of the appserver's subnets
     Type: CommaDelimitedList
     Default: "10.1.15.0/24,10.1.16.0/24,10.1.17.0/24"
-  VCPS3Stack:
+  VPCS3Stack:
     Description: S3 Bucket Stack that contains scripts and sources
     Type: String
   EnvironmentName:
@@ -39,7 +39,7 @@ Resources:
         Fn::Join:
           - ""
           - - "https://s3.amazonaws.com/"
-            - Fn::ImportValue: !Sub "${VCPS3Stack}-s3-bucket"
+            - Fn::ImportValue: !Sub "${VPCS3Stack}-s3-bucket"
             - "/vpc-template.yaml"
       Parameters:
         VPCs:

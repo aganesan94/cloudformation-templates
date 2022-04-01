@@ -32,7 +32,7 @@ echo "`date`: Stack $STACK"
 echo "`date`: Environment Name $ENVIRONMENT_NAME"
 
 # Loop through the YAML templates in this repository
-for TEMPLATE in $(find . -name 'vpc-template.yaml'); do 
+for TEMPLATE in $(find . -name '*-template.yaml'); do 
 
     # Validate the template with CloudFormation
     ERRORS=$(aws cloudformation validate-template --profile=$AWS_PROFILE --template-body file://$TEMPLATE 2>&1 >/dev/null); 

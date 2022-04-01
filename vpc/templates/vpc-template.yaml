@@ -24,32 +24,32 @@ Parameters:
   EnvironmentName:
     Description: An environment name that is prefixed to resource names
     Type: String
-    Default: bbbonaws
+    Default: dev
 
 Conditions: 
   Build2AZs: !Not [ !Equals [ !Ref NumberOfAZs, 1 ]] 
 
 Resources:
-  BBBVPC:
+  VPC:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: !Ref VPCs
       EnableDnsSupport: true
       EnableDnsHostnames: true
 
-  BBBIGW:
+  IGW:
     Type: AWS::EC2::InternetGateway
 
-  BBBIGWAttachment:
+  IGWAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
-      InternetGatewayId: !Ref BBBIGW
-      VpcId: !Ref BBBVPC
+      InternetGatewayId: !Ref IGW
+      VpcId: !Ref VPC
 
-  BBBPublicApplicationSubnet1:
+  PublicApplicationSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref BBBVPC
+      VpcId: !Ref VPC
       AvailabilityZone: !Select [ 0, !GetAZs '' ]
       MapPublicIpOnLaunch: true
       CidrBlock: 
@@ -57,11 +57,11 @@ Resources:
         - '0'
         - Ref: PublicApplicationSubnets    
 
-  BBBPublicApplicationSubnet2:
+  PublicApplicationSubnet2:
     Type: AWS::EC2::Subnet
     Condition: Build2AZs
     Properties:
-      VpcId: !Ref BBBVPC
+      VpcId: !Ref VPC
       AvailabilityZone: !Select [ 1, !GetAZs  '' ]
       MapPublicIpOnLaunch: true
       CidrBlock: 
@@ -69,10 +69,10 @@ Resources:
         - '1'
         - Ref: PublicApplicationSubnets    
 
-  BBBPrivateApplicationSubnet1:
+  PrivateApplicationSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref BBBVPC
+      VpcId: !Ref VPC
       AvailabilityZone: !Select [ 0, !GetAZs  '' ]
       CidrBlock: 
         Fn::Select:
@@ -83,11 +83,11 @@ Resources:
         - Key: Name
           Value: !Sub ${EnvironmentName} Private Subnet (AZ1)
 
-  BBBPrivateApplicationSubnet2:
+  PrivateApplicationSubnet2:
     Type: AWS::EC2::Subnet
     Condition: Build2AZs
     Properties:
-      VpcId: !Ref BBBVPC
+      VpcId: !Ref VPC
       AvailabilityZone: !Select [ 1, !GetAZs  '' ]
       CidrBlock: 
         Fn::Select:
@@ -98,110 +98,110 @@ Resources:
         - Key: Name
           Value: !Sub ${EnvironmentName} Private Subnet (AZ2)
 
-  BBBNatGateway1EIP:
+  NateGateway1EIP:
     Type: AWS::EC2::EIP
-    DependsOn: BBBIGWAttachment
+    DependsOn: IGWAttachment
     Properties:
       Domain: vpc
 
-  BBBNatGateway1:
+  NatGateway1:
     Type: AWS::EC2::NatGateway
     Properties:
-      AllocationId: !GetAtt BBBNatGateway1EIP.AllocationId
-      SubnetId: !Ref BBBPublicApplicationSubnet1
+      AllocationId: !GetAtt NateGateway1EIP.AllocationId
+      SubnetId: !Ref PublicApplicationSubnet1
 
-  BBBPublicRouteTable:
+  PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref BBBVPC
+      VpcId: !Ref VPC
 
-  BBBDefaultPublicRoute:
+  DefaultPublicRoute:
     Type: AWS::EC2::Route
-    DependsOn: BBBIGWAttachment
+    DependsOn: IGWAttachment
     Properties:
-      RouteTableId: !Ref BBBPublicRouteTable
+      RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref BBBIGW
+      GatewayId: !Ref IGW
 
-  BBBPublicApplicationSubnet1RouteTableAssociation:
+  PublicApplicationSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      RouteTableId: !Ref BBBPublicRouteTable
-      SubnetId: !Ref BBBPublicApplicationSubnet1
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicApplicationSubnet1
 
-  BBBPublicApplicationSubnet2RouteTableAssociation:
+  PublicApplicationSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Condition: Build2AZs
     Properties:
-      RouteTableId: !Ref BBBPublicRouteTable
-      SubnetId: !Ref BBBPublicApplicationSubnet2
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicApplicationSubnet2
 
-  BBBPrivateRouteTable1:
+  PrivateRouteTable1:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref BBBVPC
+      VpcId: !Ref VPC
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Private Routes (AZ1)
 
-  BBBDefaultPrivateRoute1:
+  DefaultPrivateRoute1:
     Type: AWS::EC2::Route
     Properties:
-      RouteTableId: !Ref BBBPrivateRouteTable1
+      RouteTableId: !Ref PrivateRouteTable1
       DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref BBBNatGateway1
+      NatGatewayId: !Ref NatGateway1
 
-  BBBPrivateApplicationSubnet1RouteTableAssociation:
+  PrivateApplicationSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Condition: Build2AZs
     Properties:
-      RouteTableId: !Ref BBBPrivateRouteTable1
-      SubnetId: !Ref BBBPrivateApplicationSubnet1
+      RouteTableId: !Ref PrivateRouteTable1
+      SubnetId: !Ref PrivateApplicationSubnet1
 
-  BBBPrivateRouteTable2:
+  PrivateRouteTable2:
     Type: AWS::EC2::RouteTable
     Condition: Build2AZs
     Properties:
-      VpcId: !Ref BBBVPC
+      VpcId: !Ref VPC
 
-  BBBDefaultPrivateRoute2:
+  DefaultPrivateRoute2:
     Type: AWS::EC2::Route
     Condition: Build2AZs
     Properties:
-      RouteTableId: !Ref BBBPrivateRouteTable2
+      RouteTableId: !Ref PrivateRouteTable2
       DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref BBBNatGateway1
+      NatGatewayId: !Ref NatGateway1
 
-  BBBPrivateApplicationSubnet2RouteTableAssociation:
+  PrivateApplicationSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Condition: Build2AZs
     Properties:
-      RouteTableId: !Ref BBBPrivateRouteTable2
-      SubnetId: !Ref BBBPrivateApplicationSubnet2
+      RouteTableId: !Ref PrivateRouteTable2
+      SubnetId: !Ref PrivateApplicationSubnet2
 
 Outputs:
   VPCs:
     Description: A reference to the created VPC
-    Value: !Ref BBBVPC
+    Value: !Ref VPC
 
   VPCId:
     Description: VPC ID
     Value:
-      Ref: BBBVPC
+      Ref: VPC
     Export:
       Name:
         Fn::Sub: "${AWS::StackName}-VPCID"
 
   PublicApplicationSubnets:
     Description: A list of the public Application subnets
-    Value: !Join [ ",", [ !Ref BBBPublicApplicationSubnet1, !If [ Build2AZs, !Ref BBBPublicApplicationSubnet2,  !Ref "AWS::NoValue"]]]
+    Value: !Join [ ",", [ !Ref PublicApplicationSubnet1, !If [ Build2AZs, !Ref PublicApplicationSubnet2,  !Ref "AWS::NoValue"]]]
     Export:
       Name:
         Fn::Sub: "${AWS::StackName}-PublicApplicationSubnets"
 
   PrivateApplicationSubnets:
     Description: A list of the private Instance subnets
-    Value: !Join [ ",", [ !Ref BBBPrivateApplicationSubnet1, !If [ Build2AZs, !Ref BBBPrivateApplicationSubnet2,  !Ref "AWS::NoValue"]]]
+    Value: !Join [ ",", [ !Ref PrivateApplicationSubnet1, !If [ Build2AZs, !Ref PrivateApplicationSubnet2,  !Ref "AWS::NoValue"]]]
     Export:
       Name:
         Fn::Sub: "${AWS::StackName}-PrivateApplicationSubnets"
