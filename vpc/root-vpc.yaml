@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: > 
+  This Cloudformation Template deploys the network for the application infrastructure.
+  Author: Arun Ganesan <aganesan94@gmail.com>
+  
+Parameters:
+  VPCs:
+    Description: Please enter the IP range (CIDR notation) for the BBB VPC
+    Type: String
+    Default: 10.1.0.0/16
+  NumberOfAZs:
+    Description: Amount of Availability Zones to utilize
+    Type: Number
+    AllowedValues:
+    - 1
+    - 2
+    Default: 2
+  PrivateApplicationSubnets:
+    Description: Comma separated list of the private subnets for instances
+    Type: CommaDelimitedList
+    Default: "10.1.5.0/24,10.1.6.0/24,10.1.7.0/24"
+  PublicApplicationSubnets:
+    Description:  Comma separated list of the appserver's subnets
+    Type: CommaDelimitedList
+    Default: "10.1.15.0/24,10.1.16.0/24,10.1.17.0/24"
+  VCPS3Stack:
+    Description: S3 Bucket Stack that contains scripts and sources
+    Type: String
+  EnvironmentName:
+    Description: An environment name that is prefixed to resource names
+    Type: String
+    Default: dev    
+
+Resources:
+  NetworkStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+        Fn::Join:
+          - ""
+          - - "https://s3.amazonaws.com/"
+            - Fn::ImportValue: !Sub "${VCPS3Stack}-s3-bucket"
+            - "/vpc-template.yaml"
+      Parameters:
+        VPCs:
+          Ref: VPCs
+        NumberOfAZs:
+          Ref: NumberOfAZs
+        PrivateApplicationSubnets:
+          Fn::Join:
+            - ","
+            - Ref: PrivateApplicationSubnets
+        PublicApplicationSubnets:
+          Fn::Join:
+            - ","
+            - Ref: PublicApplicationSubnets
+        EnvironmentName:
+          Ref: EnvironmentName
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: NetworkStack-${EnvironmentName}
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+Outputs:
+  NetworkStack:
+    Description: The network stack
+    Value: 
+      Ref: NetworkStack

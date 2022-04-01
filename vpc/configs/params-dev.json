@@ -1,0 +1,9 @@
+{
+    "Parameters" : {
+        "BBBVPCs": "10.1.0.0/16",
+        "BBBPrivateApplicationSubnets": "10.1.5.0/24,10.1.6.0/24,10.1.7.0/24",
+        "BBBPublicApplicationSubnets": "10.1.15.0/24,10.1.16.0/24,10.1.17.0/24",
+        "BBBNumberOfAZs": 2,
+        "BBBEnvironmentName": "dev"
+    }
+}

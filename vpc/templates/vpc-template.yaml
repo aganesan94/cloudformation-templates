@@ -1,0 +1,207 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: > 
+  This Cloudformation Template deploys the network for the application infrastructure.
+  Author: Arun Ganesan <aganesan94@gmail.com>
+
+Parameters:
+  VPCs:
+    Description: Please enter the IP range (CIDR notation) or ID for the BBB VPC
+    Type: String
+  NumberOfAZs:
+    Description: Amount of Availability Zones to utilize
+    Type: Number
+    AllowedValues:
+    - 1
+    - 2
+    Default: 2
+  PublicApplicationSubnets:
+    Description:  Comma separated list of the appserver's subnets
+    Type: CommaDelimitedList
+  PrivateApplicationSubnets:
+    Description:  Comma separated list of the private subnets for instances
+    Type: CommaDelimitedList
+  EnvironmentName:
+    Description: An environment name that is prefixed to resource names
+    Type: String
+    Default: bbbonaws
+
+Conditions: 
+  Build2AZs: !Not [ !Equals [ !Ref NumberOfAZs, 1 ]] 
+
+Resources:
+  BBBVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VPCs
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+
+  BBBIGW:
+    Type: AWS::EC2::InternetGateway
+
+  BBBIGWAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref BBBIGW
+      VpcId: !Ref BBBVPC
+
+  BBBPublicApplicationSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref BBBVPC
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      MapPublicIpOnLaunch: true
+      CidrBlock: 
+        Fn::Select:
+        - '0'
+        - Ref: PublicApplicationSubnets    
+
+  BBBPublicApplicationSubnet2:
+    Type: AWS::EC2::Subnet
+    Condition: Build2AZs
+    Properties:
+      VpcId: !Ref BBBVPC
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
+      MapPublicIpOnLaunch: true
+      CidrBlock: 
+        Fn::Select:
+        - '1'
+        - Ref: PublicApplicationSubnets    
+
+  BBBPrivateApplicationSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref BBBVPC
+      AvailabilityZone: !Select [ 0, !GetAZs  '' ]
+      CidrBlock: 
+        Fn::Select:
+        - '0'
+        - Ref: PrivateApplicationSubnets
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private Subnet (AZ1)
+
+  BBBPrivateApplicationSubnet2:
+    Type: AWS::EC2::Subnet
+    Condition: Build2AZs
+    Properties:
+      VpcId: !Ref BBBVPC
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
+      CidrBlock: 
+        Fn::Select:
+        - '1'
+        - Ref: PrivateApplicationSubnets
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private Subnet (AZ2)
+
+  BBBNatGateway1EIP:
+    Type: AWS::EC2::EIP
+    DependsOn: BBBIGWAttachment
+    Properties:
+      Domain: vpc
+
+  BBBNatGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt BBBNatGateway1EIP.AllocationId
+      SubnetId: !Ref BBBPublicApplicationSubnet1
+
+  BBBPublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref BBBVPC
+
+  BBBDefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: BBBIGWAttachment
+    Properties:
+      RouteTableId: !Ref BBBPublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref BBBIGW
+
+  BBBPublicApplicationSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref BBBPublicRouteTable
+      SubnetId: !Ref BBBPublicApplicationSubnet1
+
+  BBBPublicApplicationSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: Build2AZs
+    Properties:
+      RouteTableId: !Ref BBBPublicRouteTable
+      SubnetId: !Ref BBBPublicApplicationSubnet2
+
+  BBBPrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref BBBVPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private Routes (AZ1)
+
+  BBBDefaultPrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref BBBPrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref BBBNatGateway1
+
+  BBBPrivateApplicationSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: Build2AZs
+    Properties:
+      RouteTableId: !Ref BBBPrivateRouteTable1
+      SubnetId: !Ref BBBPrivateApplicationSubnet1
+
+  BBBPrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Condition: Build2AZs
+    Properties:
+      VpcId: !Ref BBBVPC
+
+  BBBDefaultPrivateRoute2:
+    Type: AWS::EC2::Route
+    Condition: Build2AZs
+    Properties:
+      RouteTableId: !Ref BBBPrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref BBBNatGateway1
+
+  BBBPrivateApplicationSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: Build2AZs
+    Properties:
+      RouteTableId: !Ref BBBPrivateRouteTable2
+      SubnetId: !Ref BBBPrivateApplicationSubnet2
+
+Outputs:
+  VPCs:
+    Description: A reference to the created VPC
+    Value: !Ref BBBVPC
+
+  VPCId:
+    Description: VPC ID
+    Value:
+      Ref: BBBVPC
+    Export:
+      Name:
+        Fn::Sub: "${AWS::StackName}-VPCID"
+
+  PublicApplicationSubnets:
+    Description: A list of the public Application subnets
+    Value: !Join [ ",", [ !Ref BBBPublicApplicationSubnet1, !If [ Build2AZs, !Ref BBBPublicApplicationSubnet2,  !Ref "AWS::NoValue"]]]
+    Export:
+      Name:
+        Fn::Sub: "${AWS::StackName}-PublicApplicationSubnets"
+
+  PrivateApplicationSubnets:
+    Description: A list of the private Instance subnets
+    Value: !Join [ ",", [ !Ref BBBPrivateApplicationSubnet1, !If [ Build2AZs, !Ref BBBPrivateApplicationSubnet2,  !Ref "AWS::NoValue"]]]
+    Export:
+      Name:
+        Fn::Sub: "${AWS::StackName}-PrivateApplicationSubnets"
