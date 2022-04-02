@@ -44,7 +44,8 @@ eksctl create cluster \
 --version  1.21 \
 --nodegroup-name dev-eks-node \
 --node-type t2.micro \
---nodes 2
+--nodes 2 \
+--tags environment=dev \
 ```
 
 ###### Writing a to a new kubeconfig file
@@ -61,13 +62,29 @@ eksctl create cluster \
 --nodegroup-name dev-eks-node \
 --node-type t2.micro \
 --nodes 2 \
---kubeconfig <path-to-kube-config>
+--kubeconfig /home/cloudtel/picto/git/cloudformation-templates/eks/dev-eks.config \
+--tags environment=dev
 ```
 In this case what we will need to do is that we need to merge to the kube config files for use by other developers
 
+Back up your current profile
 ```bash
-KUBECONFIG=~/.kube/config:~/<-path-to-other-config> kubectl config view --flatten > ~/.kube/config
+cp ~/.kube/config ~/.kube/backup
 ```
+
+```bash
+#back up existing kubeconfig and write again
+cp $HOME/.kube/config $HOME/.kube/config.backup.$(date +%Y-%m-%d.%H:%M:%S)
+
+#Merge existing kube config
+KUBECONFIG=$HOME/.kube/config:/home/cloudtel/picto/git/cloudformation-templates/eks/dev-eks.config: kubectl config view --merge --flatten > \
+~/.kube/merged_kubeconfig && mv ~/.kube/merged_kubeconfig ~/.kube/config
+
+#View the config to make sure all is well
+cat ~/.kube/config
+```
+
+
 
 ###### Deleting a cluster
 
@@ -88,3 +105,4 @@ eksctl delete cluster --name dev-eks
 * https://eksctl.io/usage/creating-and-managing-clusters/
 * https://eksctl.io/usage/schema/
 * https://github.com/weaveworks/eksctl/tree/main/examples
+* https://www.youtube.com/watch?v=gwmdboC-BtE
