@@ -67,10 +67,6 @@ eksctl create cluster \
 ```
 In this case what we will need to do is that we need to merge to the kube config files for use by other developers
 
-Back up your current profile
-```bash
-cp ~/.kube/config ~/.kube/backup
-```
 
 ```bash
 #back up existing kubeconfig and write again
@@ -84,6 +80,11 @@ KUBECONFIG=$HOME/.kube/config:/home/cloudtel/picto/git/cloudformation-templates/
 cat ~/.kube/config
 ```
 
+If at all the file gets misplaced you can retrieve the credentials with the following command
+```bash
+AWS_PROFILE=cloudtel eksctl utils write-kubeconfig --cluster=dev-eks --kubeconfig=/home/cloudtel/picto/git/cloudformation-templates/abc.config --set-kubeconfig-context=false
+
+```
 
 
 ###### Deleting a cluster
@@ -99,6 +100,7 @@ eksctl delete cluster --name dev-eks
 
 ### References
 * https://eksctl.io/
+* https://eksctl.io/introduction/
 * https://eksctl.io/usage/dry-run/
 * https://eksctl.io/usage/vpc-networking/
 * https://eksctl.io/usage/vpc-configuration/
