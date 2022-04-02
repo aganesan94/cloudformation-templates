@@ -55,8 +55,8 @@ echo "`date`: Validating of AWS CloudFormation templates finished"
 
 
 # Deploy the Needed Buckets for the later build 
-echo "`date`: Deploying VPC"
-PREPSTACK="${STACK}-s3-stack"
+echo "`date`: Deploying CF"
+PREPSTACK="${STACK}-s3-cf-stack"
 echo "`date`: S3 Stack Name $PREPSTACK"
 aws cloudformation deploy --stack-name $PREPSTACK --profile=$AWS_PROFILE --template ./templates/bucket-vpc-template.yaml
 echo "`date`: Deployment done"
@@ -75,6 +75,7 @@ if [ -e . ]
 then
     echo "`date`: ##################################################"
     aws s3 sync --profile=$AWS_PROFILE --exclude=".DS_Store" ./templates s3://$SOURCE
+    aws s3 sync --profile=$AWS_PROFILE --exclude=".DS_Store" ./scripts s3://$SOURCE
     echo "`date`: ##################################################"
 else
     echo "`date`: Code source file missing"

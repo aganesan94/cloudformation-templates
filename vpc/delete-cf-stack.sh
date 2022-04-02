@@ -43,16 +43,16 @@ then
 
     if [[ $REPLY =~ ^[Yy]$ ]]
     then
-        echo "`date`-$FILE_NAME: AWS_PROFILE=$AWS_PROFILE aws s3 rm --recursive s3://$STACK_NAME-s3-stack-s3-bucket"
-        AWS_PROFILE=$AWS_PROFILE aws s3 rm --recursive s3://$STACK_NAME-s3-stack-s3-bucket
+        echo "`date`-$FILE_NAME: AWS_PROFILE=$AWS_PROFILE aws s3 rm --recursive s3://$STACK_NAME-s3-cf-stack-s3-bucket"
+        AWS_PROFILE=$AWS_PROFILE aws s3 rm --recursive s3://$STACK_NAME-s3-cf-stack-s3-bucket
 
         read -p "Are you sure you want to delete stack $STACK_NAME-s3-stack? (y/n) " -n 1 -r
         echo    # (optional) move to a new line
 
         if [[ $REPLY =~ ^[Yy]$ ]]
         then
-            echo "`date`-$FILE_NAME: AWS_PROFILE=$AWS_PROFILE aws cloudformation delete-stack --stack-name $STACK_NAME-s3-stack"
-            AWS_PROFILE=$AWS_PROFILE aws cloudformation delete-stack --stack-name $STACK_NAME-s3-stack   
+            echo "`date`-$FILE_NAME: AWS_PROFILE=$AWS_PROFILE aws cloudformation delete-stack --stack-name $STACK_NAME-s3-cf-stack"
+            AWS_PROFILE=$AWS_PROFILE aws cloudformation delete-stack --stack-name $STACK_NAME-s3-cf-stack
         fi
     fi
 fi    
