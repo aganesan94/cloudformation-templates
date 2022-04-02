@@ -9,8 +9,8 @@ Cloudformation-templates
 
 ## Pre-requisites
 
-* Install awscli
-* Configure your AWS Profile
+* Install awscli (https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+* Configure your AWS Profile with the necessary IAM User and policies (https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html)
 
 ## vpc directory
 
