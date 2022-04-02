@@ -37,6 +37,7 @@ export MASTER_ARN=${MASTER_ARN}
 ## Creating the cluster
 
 Note: After adding this type "EOF" to get out of the prompt
+
 ```bash
 cat << EOF > eksworkshop.yaml
 ---
@@ -53,7 +54,7 @@ availabilityZones: ["us-east-1a", "us-east-1b", "us-east-1c"]
 managedNodeGroups:
 - name: nodegroup
   desiredCapacity: 3
-  instanceType: t3.micro
+  instanceType: t3.medium
   ssh:
     enableSsm: true
 
@@ -140,3 +141,82 @@ kubectl proxy
 ### Step 4: Access the dashboard
 
 http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#!/login
+
+
+### Step 5: Kill the dashboard if you arent using it
+
+```bash
+# kill proxy
+pkill -f 'kubectl proxy'
+
+# delete dashboard
+kubectl delete -f https://raw.githubusercontent.com/kubernetes/dashboard/${DASHBOARD_VERSION}/aio/deploy/recommended.yaml
+```
+
+
+## Deploying the different microservices
+
+
+```bash
+ #cd into the directory
+ cd ecsdemo-nodejs/
+
+
+ kubectl apply -f kubernetes/deployment.yaml
+ kubectl apply -f kubernetes/service.yaml
+
+
+ k get deployments
+ k get po
+ k get svc
+```
+
+```bash
+ #cd into the directory
+ cd ecsdemo-crystal/
+
+
+ kubectl apply -f kubernetes/deployment.yaml
+ kubectl apply -f kubernetes/service.yaml
+
+
+ k get deployments
+ k get po
+ k get svc
+```
+
+```bash
+ #cd into the directory
+ cd ecsdemo-frontend/
+
+
+ kubectl apply -f kubernetes/deployment.yaml
+ kubectl apply -f kubernetes/service.yaml
+
+
+ k get deployments
+ k get po
+ k get svc
+```
+
+## Check if you are allowed to provision a load balancer
+
+This should return some response.
+
+```
+AWS_PROFILE=cloudtel \
+aws iam get-role --role-name "AWSServiceRoleForElasticLoadBalancing" || \
+aws iam create-service-linked-role --aws-service-name "elasticloadbalancing.amazonaws.com"
+```
+
+### Troubleshooting
+
+if pods do not come up refer to the node instance type and max pods supported 
+
+https://github.com/awslabs/amazon-eks-ami/blob/master/files/eni-max-pods.txt
+
+https://aws.amazon.com/blogs/containers/amazon-vpc-cni-increases-pods-per-node-limits/
+
+https://aws.amazon.com/blogs/containers/amazon-vpc-cni-increases-pods-per-node-limits/
+
+
