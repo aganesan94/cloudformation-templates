@@ -368,7 +368,7 @@ helm install --dry-run --debug abc bitnami/nginx
 
 
 #Install nginx
-helm install <somename> bitnami/nginx
+helm install <helm-release-name> bitnami/nginx
 Ex: helm install nginx-tester bitnami/nginx
 ```
 
@@ -437,7 +437,7 @@ kubectl get svc <service-name> -o jsonpath="{.status.loadBalancer.ingress[*].hos
 ### List and uninstall the desired helm services
 
 ```bash
-helm uninstall <name>
+helm uninstall <helm-release-name>
 
 #Ex
 helm uninstall nginx-tester
@@ -447,18 +447,154 @@ helm uninstall nginx-tester
 
 ```bash
 #If you make changes to the chart and wish to upgrade the deployment
-helm upgrade <helm-name> <directory of the chart>
+helm upgrade <helm-release-name> <directory of the chart>
 
 # Get the last deployed timestamp for a particular deployment
-helm status <helm-name>
+helm status <helm-release-name>
 
 # List the previous history of deployment
-helm history <helm-name>
+helm history <helm-release-name>
 
 # Roll back to version 1
-helm rollback <helm-name> 1
+helm rollback <helm-release-name> 1
 ```
 
+## Health check
+
+* Ensures that the service is up and running and is able to serve requests to clients
+  
+  References: 
+  
+ * https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+ * https://stackoverflow.com/questions/65858309/why-do-i-need-3-different-kind-of-probes-in-kubernetes-startupprobe-readinessp
+ * https://srcco.de/posts/kubernetes-liveness-probes-are-dangerous.html
+
+There are 3 probes
+
+  * Liveness probe
+    * Is a pod alive? or dead?
+    * K8s will automatically kill and recreate a pod when a liveness probe does not pass.
+  * Readiness probe
+    * When is a pod ready to serve traffic to the client?
+    * Readiness prbe failures mean traffic is not sent to the pod
+    * There are no automatic restarts
+    * Readiness probe != Liveness probe
+  * Startup probe
+    * The Startup and Liveness Probe can use the same endpoint, but the Startup Probe will have a less strict failure threshhold which prevents a failure on startup
+
+
+### Example of liveness probe
+
+```bash
+mkdir healthchecks
+```
+
+*Note* 
+
+* In the current path "/health" is the endpoint running on port 3000
+* 
+
+```bash
+cat <<EoF > liveness-app.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-app
+spec:
+  containers:
+  - name: liveness
+    image: brentley/ecsdemo-nodejs
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 3000
+      initialDelaySeconds: 5
+      periodSeconds: 5
+```
+
+```bash
+# Create the pod
+k apply -f liveness-app.yaml
+
+# Verify the pod is running
+k get po liveness-app
+
+# Check if liveness probe succeeded on the app
+k describe po liveness-app
+
+# Introduce a failure causing liveness to fail
+k exec -it liveness-app -- /bin/kill -s SIGUSR1 1
+
+# Check if pod is running
+k get po liveness-app
+
+# Describe the pod
+k describe po liveness-app
+Normal   Killing    34s                 kubelet            Container liveness failed liveness probe, will be restarted
+
+#Debugging what happened 
+# Look at previous logs or rolling logs
+k logs liveness-app --previous
+k logs -f liveness-app
+
+# Delete the pod
+k delete -f liveness-app.yaml
+```
+
+### Example of Readiness probes
+
+We create a pod which contains a file location
+where we write to and the readiness probe check if
+the file can be "cat"-ed. If the file does not exist the readiness probe will fail
+
+```bash
+cat <<EoF > ~/environment/healthchecks/readiness-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: readiness-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: readiness-deployment
+  template:
+    metadata:
+      labels:
+        app: readiness-deployment
+    spec:
+      containers:
+      - name: readiness-deployment
+        image: alpine
+        command: ["sh", "-c", "touch /tmp/healthy && sleep 86400"]
+        readinessProbe:
+          exec:
+            command:
+            - cat
+            - /tmp/healthy
+          initialDelaySeconds: 5
+          periodSeconds: 3
+```
+
+```bash
+# Create the pod
+k apply -f readiness-app.yaml
+
+# Verify the deployment is running
+k get deployment readiness-deployment
+
+# Check if readiness probe succeeded on the app
+k get  po -l app=readiness-deployment
+
+# Let us remove the file from one of the pods
+k exec -it <YOUR-READINESS-POD-NAME> -- rm /tmp/healthy
+
+# Check if pod is running, should state one of the pods is not running
+k get  po -l app=readiness-deployment
+
+# Delete the pod
+k delete -f readiness-app.yaml
+```
 
 # Troubleshooting
 
