@@ -11,7 +11,7 @@ availabilityZones: ["us-east-1a", "us-east-1b", "us-east-1c"]
 managedNodeGroups:
 - name: nodegroup
   desiredCapacity: 3
-  instanceType: t3.micro
+  instanceType: t3.small
   ssh:
     enableSsm: true
 

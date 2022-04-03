@@ -31,9 +31,6 @@ export LBC_VERSION="v2.4.0"
 export MASTER_ARN=${MASTER_ARN}
 ```
 
-
-
-
 ## Creating the cluster
 
 Note: After adding this type "EOF" to get out of the prompt
@@ -69,7 +66,13 @@ secretsEncryption:
 ## Ensure the cluster is working
 
 ```bash
-$ kubectl describe configmap -n kube-system aws-auth
+
+# Check if the context has been set correctly
+kubectl config get-contexts
+
+
+# Check if cluster is working as expected and you are able to access it.
+kubectl describe configmap -n kube-system aws-auth
 Name:         aws-auth
 Namespace:    kube-system
 Labels:       <none>
@@ -122,6 +125,10 @@ subjects:
 - kind: ServiceAccount
   name: eks-admin
   namespace: kube-system
+```
+
+```bash
+kubectl apply -f eks-admin-service-account.yaml
 ```
 
 ### Step 2: Get an auth token
@@ -199,6 +206,87 @@ kubectl delete -f https://raw.githubusercontent.com/kubernetes/dashboard/${DASHB
  k get svc
 ```
 
+*Note*
+
+
+The service.yaml for the frontend services is as below. Notice the type parameter
+type: LoadBalancer
+
+This basically creates a classic loadbalancer for received requests in AWS.
+
+```bash
+apiVersion: v1
+kind: Service
+metadata:
+  name: ecsdemo-frontend
+spec:
+  selector:
+    app: ecsdemo-frontend
+  type: LoadBalancer
+  ports:
+   -  protocol: TCP
+      port: 80
+      targetPort: 3000
+```
+The service.yaml for the backend services is as below. Notice the type parameter
+type: ClusterIP. This is the default
+
+```bash
+apiVersion: v1
+kind: Service
+metadata:
+  name: ecsdemo-nodejs
+spec:
+  selector:
+    app: ecsdemo-nodejs
+  ports:
+   -  protocol: TCP
+      port: 80
+      targetPort: 3000
+```
+
+## Access the microservice
+
+The following command should give the URL for the Loadbalancer which can be used to access the application.
+
+```bash
+kubectl get service ecsdemo-frontend -o wide
+```
+
+```bash
+ELB=$(kubectl get service ecsdemo-frontend -o json | jq -r '.status.loadBalancer.ingress[].hostname')
+
+curl -m3 -v $ELB
+```
+
+## Checking the nodes where the pods are deployed to
+
+```bash
+k get po -o wide
+NAME                                READY   STATUS    RESTARTS   AGE   IP               NODE                            NOMINATED NODE   READINESS GATES
+ecsdemo-crystal-856c46f686-vmpnd    1/1     Running   0          43m   192.168.69.153   ip-192-168-64-64.ec2.internal   <none>           <none>
+ecsdemo-frontend-679545f5b5-9lm4g   1/1     Running   0          35m   192.168.43.11    ip-192-168-58-77.ec2.internal   <none>           <none>
+ecsdemo-nodejs-99fbbf9-xx79v        1/1     Running   0          44m   192.168.18.7     ip-192-168-31-95.ec2.internal   <none>           <none>
+```
+
+
+## Scaling the services
+
+```bash
+
+# Scaling backend
+kubectl scale deployment ecsdemo-nodejs --replicas=3
+kubectl scale deployment ecsdemo-crystal --replicas=3
+
+# Verify if deployments have scaled.
+kubectl get deployments
+
+# Scaling frontend
+kubectl scale deployment ecsdemo-frontend --replicas=3
+kubectl get deployments
+```
+
+
 ## Check if you are allowed to provision a load balancer
 
 This should return some response.
@@ -209,7 +297,7 @@ aws iam get-role --role-name "AWSServiceRoleForElasticLoadBalancing" || \
 aws iam create-service-linked-role --aws-service-name "elasticloadbalancing.amazonaws.com"
 ```
 
-### Troubleshooting
+# Troubleshooting
 
 if pods do not come up refer to the node instance type and max pods supported 
 
