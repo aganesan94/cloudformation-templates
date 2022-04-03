@@ -245,6 +245,16 @@ spec:
       targetPort: 3000
 ```
 
+## Check if you are allowed to provision a load balancer
+
+This should return some response.
+
+```
+AWS_PROFILE=cloudtel \
+aws iam get-role --role-name "AWSServiceRoleForElasticLoadBalancing" || \
+aws iam create-service-linked-role --aws-service-name "elasticloadbalancing.amazonaws.com"
+```
+
 ## Access the microservice
 
 The following command should give the URL for the Loadbalancer which can be used to access the application.
@@ -286,16 +296,16 @@ kubectl scale deployment ecsdemo-frontend --replicas=3
 kubectl get deployments
 ```
 
+## Deleting the services
 
-## Check if you are allowed to provision a load balancer
-
-This should return some response.
+cd into each directory
 
 ```
-AWS_PROFILE=cloudtel \
-aws iam get-role --role-name "AWSServiceRoleForElasticLoadBalancing" || \
-aws iam create-service-linked-role --aws-service-name "elasticloadbalancing.amazonaws.com"
+kubectl delete -f kubernetes/service.yaml
+kubectl delete -f kubernetes/deployment.yaml
 ```
+
+
 
 # Troubleshooting
 
