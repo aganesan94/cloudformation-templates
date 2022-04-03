@@ -296,6 +296,8 @@ kubectl scale deployment ecsdemo-frontend --replicas=3
 kubectl get deployments
 ```
 
+
+
 ## Deleting the services
 
 cd into each directory
@@ -305,6 +307,157 @@ kubectl delete -f kubernetes/service.yaml
 kubectl delete -f kubernetes/deployment.yaml
 ```
 
+
+
+
+## Using Helm
+
+Reference: https://helm.sh/docs/intro/install/
+
+```bash
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+```
+
+### Verify installation
+```
+helm version --short
+```
+If at all you see an error stating "WARNING: Kubernetes configuration file is group-readable. This is insecure. Location: "
+execute the following command
+
+```bash
+chmod go-r ~/.kube/config
+```
+
+### Add helm stable and update
+
+```bash
+helm repo add stable https://charts.helm.sh/stable
+helm repo update
+helm search repo stable
+```
+
+### Search the helm repo
+This should list all the charts availabe in helm
+Reference: /
+
+```bash
+helm search repo
+```
+
+### Locate and install nginx
+
+```bash
+helm search repo nginx
+```
+Unfortunately the above helm is not a standlone nginx server hence we move to bitnami
+
+```bash
+# Add bitnamic repo
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+
+# Search for bitnami
+helm search repo bitnami/nginx
+
+
+### Dryrun a chart before installing it
+helm install --dry-run --debug abc bitnami/nginx
+
+
+#Install nginx
+helm install <somename> bitnami/nginx
+Ex: helm install nginx-tester bitnami/nginx
+```
+
+*Output of installation is as follows*
+
+```bash
+helm install nginx-tester bitnami/nginx
+NAME: nginx-tester
+LAST DEPLOYED: Sun Apr  3 13:55:04 2022
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+CHART NAME: nginx
+CHART VERSION: 9.9.8
+APP VERSION: 1.21.6
+
+** Please be patient while the chart is being deployed **
+
+NGINX can be accessed through the following DNS name from within your cluster:
+
+    nginx-tester.default.svc.cluster.local (port 80)
+
+To access NGINX from outside the cluster, follow the steps below:
+
+1. Get the NGINX URL by running these commands:
+
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+        Watch the status with: 'kubectl get svc --namespace default -w nginx-tester'
+
+    export SERVICE_PORT=$(kubectl get --namespace default -o jsonpath="{.spec.ports[0].port}" services nginx-tester)
+    export SERVICE_IP=$(kubectl get svc --namespace default nginx-tester -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+    echo "http://${SERVICE_IP}:${SERVICE_PORT}"
+
+```
+
+### Verify if the deployment is running
+
+```bash
+k get deployment
+```
+
+### Check if load balancer has been provisioned
+
+```bash
+k get svc -o wide
+```
+
+This should provide an  as follows with the ELB Details
+
+```bash
+k get svc -o wide
+NAME           TYPE           CLUSTER-IP       EXTERNAL-IP                                                              PORT(S)        AGE     SELECTOR
+kubernetes     ClusterIP      10.100.0.1       <none>                                                                   443/TCP        5h40m   <none>
+nginx-tester   LoadBalancer   10.100.100.152   a2bd6d0d98a4e4a6794376cc7d40325a-852966650.us-east-1.elb.amazonaws.com   80:31405/TCP   5m57s   app.kubernetes.io/instance=nginx-tester,app.kubernetes.io/name=nginx
+
+```
+
+If you just need the load balancer info try the following command
+
+```bash
+kubectl get svc <service-name> -o jsonpath="{.status.loadBalancer.ingress[*].hostname}"; echo
+```
+
+### List and uninstall the desired helm services
+
+```bash
+helm uninstall <name>
+
+#Ex
+helm uninstall nginx-tester
+```
+
+### Other commands that may be helpful
+
+```bash
+#If you make changes to the chart and wish to upgrade the deployment
+helm upgrade <helm-name> <directory of the chart>
+
+# Get the last deployed timestamp for a particular deployment
+helm status <helm-name>
+
+# List the previous history of deployment
+helm history <helm-name>
+
+# Roll back to version 1
+helm rollback <helm-name> 1
+```
 
 
 # Troubleshooting
