@@ -596,6 +596,13 @@ k get  po -l app=readiness-deployment
 k delete -f readiness-app.yaml
 ```
 
+# Deleting the cluster
+
+```bash
+AWS_PROFILE=cloudtel
+eksctl delete cluster --name=eksworkshop-eksctl
+```
+
 # Troubleshooting
 
 if pods do not come up refer to the node instance type and max pods supported 
